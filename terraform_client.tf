@@ -87,10 +87,3 @@ resource "aws_instance" "terraform_client" {
   }
 
 }
-
-
-
-
-output "private_ip" {
-  value = flatten(aws_network_interface.terraform_client-priv.private_ips)[0]
-}

@@ -90,6 +90,14 @@ resource "aws_security_group" "default-sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+    ingress {
+    description = "DB From anywhere"
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port        = 0
     to_port          = 0
@@ -117,25 +125,6 @@ resource "aws_s3_bucket" "tfe-bucket-software" {
 
 }
 
-
-
-# resource "aws_s3_object" "object_license" {
-#   bucket = "${var.tag_prefix}-software"
-#   key    = var.filename_license
-#   source = "files/${var.filename_license}"
-
-#   depends_on = [
-#     aws_s3_bucket.tfe-bucket-software
-#   ]
-
-
-# }
-
-
-# resource "aws_s3_bucket_acl" "tfe-bucket" {
-#   bucket = aws_s3_bucket.tfe-bucket-software.id
-#   acl    = "private"
-# }
 
 resource "aws_iam_role" "role" {
   name = "${var.tag_prefix}-role"
@@ -381,15 +370,20 @@ resource "aws_instance" "tfe_server" {
   iam_instance_profile = aws_iam_instance_profile.profile.name
 
   user_data = templatefile("${path.module}/scripts/cloudinit_tfe_server_redhat.yaml", {
-    tfe_license                = var.tfe_license
-    tag_prefix                 = var.tag_prefix
-    dns_hostname               = var.dns_hostname
-    tfe-private-ip             = cidrhost(cidrsubnet(var.vpc_cidr, 8, 1), 22)
-    tfe_password               = var.tfe_password
-    dns_zonename               = var.dns_zonename
-    region                     = var.region
-    certificate_email          = var.certificate_email
-    tfe_release                = var.tfe_release
+    tfe_license                     = var.tfe_license
+    tag_prefix                      = var.tag_prefix
+    dns_hostname                    = var.dns_hostname
+    tfe-private-ip                  = cidrhost(cidrsubnet(var.vpc_cidr, 8, 1), 22)
+    tfe_password                    = var.tfe_password
+    dns_zonename                    = var.dns_zonename
+    region                          = var.region
+    certificate_email               = var.certificate_email
+    tfe_release                     = var.tfe_release
+    db_host                         = flatten(aws_network_interface.tfe-priv.private_ips)[0]
+    object_storage_access_key       = var.object_storage_access_key
+    object_storage_key_id           = var.object_storage_key_id
+    object_storage_s3_bucket        = var.object_storage_s3_bucket
+    object_storage_s3_bucket_region = var.object_storage_s3_bucket_region
   })
 
   tags = {

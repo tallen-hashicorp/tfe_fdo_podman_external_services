@@ -14,7 +14,7 @@ write_files:
         containers:
         - env:
           - name: "TFE_OPERATIONAL_MODE"
-            value: "disk"
+            value: "external"
           - name: "TFE_LICENSE"
             value: "${tfe_license}"
           - name: "TFE_HTTP_PORT"
@@ -35,6 +35,26 @@ write_files:
             value: "true"
           - name: "TFE_ENCRYPTION_PASSWORD"
             value: "Password#1"
+          - name: "TFE_DATABASE_HOST"
+            value: "${db_host}"
+          - name: "TFE_DATABASE_NAME"
+            value: "tfe_admin"
+          - name: "TFE_DATABASE_USER"
+            value: "tfe_admin"
+          - name: "TFE_DATABASE_PASSWORD"
+            value: "tfe_admin_password"
+          - name: "TFE_DATABASE_PARAMETERS"
+            value: "sslmode=disable"
+          - name: "TFE_OBJECT_STORAGE_S3_ACCESS_KEY_ID"
+            value: "${object_storage_key_id}"
+          - name: "TFE_OBJECT_STORAGE_S3_SECRET_ACCESS_KEY"
+            value: "${object_storage_access_key}"
+          - name: "TFE_OBJECT_STORAGE_TYPE"
+            value: "s3"
+          - name: "TFE_OBJECT_STORAGE_S3_BUCKET"
+            value: "${object_storage_s3_bucket}"
+          - name: "TFE_OBJECT_STORAGE_S3_REGION"
+            value: "${object_storage_s3_bucket_region}"
           image: "images.releases.hashicorp.com/hashicorp/terraform-enterprise:v202312-1"
           name: "terraform-enterprise"
           ports:
@@ -96,7 +116,7 @@ write_files:
     content: |
       #!/usr/bin/env bash
       # installation script for software
-      
+
       # wait until archive is available. Wait until there is internet before continue
       until ping -c1 archive.ubuntu.com &>/dev/null; do
         echo "waiting for networking to initialise"
@@ -179,6 +199,36 @@ write_files:
 
       # enable podman socket
       systemctl enable --now podman.socket
+
+      # install db
+      dnf update -y
+      dnf install -y https://download.postgresql.org/pub/repos/yum/reporpms/EL-8-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+      dnf -qy module disable postgresql
+      dnf install -y postgresql14-server
+      dnf install -y postgresql14-contrib
+
+      # Setup db
+      /usr/pgsql-14/bin/postgresql-14-setup initdb
+      systemctl enable postgresql-14
+      systemctl start postgresql-14
+
+      # Allow outside connections
+      sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '0.0.0.0'/g" /var/lib/pgsql/14/data/postgresql.conf
+      echo "host    tfe_admin    tfe_admin    0.0.0.0/0    md5" >> /var/lib/pgsql/14/data/pg_hba.conf
+      systemctl restart postgresql-14
+
+      # Create User
+      sudo -u postgres createdb tfe_admin
+      sudo -u postgres createuser --superuser tfe_admin
+      sudo -u postgres psql -c "ALTER USER tfe_admin WITH PASSWORD 'tfe_admin_password';"
+      sudo -u postgres psql -c "ALTER USER tfe_admin WITH SUPERUSER;"
+      sudo -u postgres psql -d tfe_admin -c "CREATE SCHEMA rails;"
+      sudo -u postgres psql -d tfe_admin -c "CREATE SCHEMA vault;"
+      sudo -u postgres psql -d tfe_admin -c "CREATE SCHEMA registry;"
+      sudo -u postgres psql -d tfe_admin -c "CREATE SCHEMA task_worker;"
+      sudo -u postgres psql -d tfe_admin -c 'CREATE EXTENSION IF NOT EXISTS "hstore" WITH SCHEMA "rails";'
+      sudo -u postgres psql -d tfe_admin -c 'CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "rails";'
+      sudo -u postgres psql -d tfe_admin -c 'CREATE EXTENSION IF NOT EXISTS "citext" WITH SCHEMA "registry";'
    
   - path: /var/tmp/download_and_unpack_software.sh 
     permissions: '0750'
