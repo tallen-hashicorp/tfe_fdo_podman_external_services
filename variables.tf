@@ -43,13 +43,13 @@ variable "terraform_client_version" {
   description = "Terraform client installed on the terraform client machine"
 }
 
-variable "object_storage_access_key" {
-  description = "Object storage access key"
-}
+# variable "object_storage_access_key" {
+#   description = "Object storage access key"
+# }
 
-variable "object_storage_key_id" {
-  description = "Object storage key id"
-}
+# variable "object_storage_key_id" {
+#   description = "Object storage key id"
+# }
 
 variable "object_storage_s3_bucket" {
   description = "Object storage s3 bucket"
