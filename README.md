@@ -1,4 +1,4 @@
-# Terraform Enterprise Installation External Services - Work in Progress!!!
+# Terraform Enterprise Installation External Services
 
 This repository was forked from the great example [tfe_fdo_podman_disk](https://github.com/munnep/tfe_fdo_podman_disk) created by [Patrick Munne](https://github.com/munnep).
 
