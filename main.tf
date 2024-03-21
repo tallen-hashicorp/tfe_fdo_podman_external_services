@@ -380,10 +380,10 @@ resource "aws_instance" "tfe_server" {
     certificate_email               = var.certificate_email
     tfe_release                     = var.tfe_release
     db_host                         = flatten(aws_network_interface.tfe-priv.private_ips)[0]
-    object_storage_access_key       = var.object_storage_access_key
-    object_storage_key_id           = var.object_storage_key_id
-    object_storage_s3_bucket        = var.object_storage_s3_bucket
-    object_storage_s3_bucket_region = var.object_storage_s3_bucket_region
+    object_storage_access_key       = aws_iam_access_key.tfefdo_user.secret
+    object_storage_key_id           = aws_iam_access_key.tfefdo_user.id
+    object_storage_s3_bucket        = aws_s3_bucket.tfe_fdo_s3_bucket.id
+    object_storage_s3_bucket_region = aws_s3_bucket.tfe_fdo_s3_bucket.region
   })
 
   tags = {
